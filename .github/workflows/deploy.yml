@@ -1,1 +1,35 @@
-ok
+name: CI/CD Pipeline - Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy to AWS EC2
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 1. Checkout do código
+        uses: actions/checkout@v3
+
+      - name: 2. Enviar arquivos para a EC2 (SCP)
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "index.html" 
+          target: "/home/ubuntu/site_temp"
+
+      - name: 3. Publicar na pasta do Apache (SSH)
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            sudo cp -r /home/ubuntu/site_temp/* /var/www/html/
+            sudo rm -rf /home/ubuntu/site_temp
+            sudo systemctl restart apache2
